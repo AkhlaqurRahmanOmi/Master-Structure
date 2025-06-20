@@ -14,4 +14,4 @@ export class UserDTO extends UserBaseDTO {
 
 // //this one is another approach
 // @ObjectType()
-// export class UserDto extends UserBaseDTO{}
+// export class UserDTO extends UserBaseDTO{}

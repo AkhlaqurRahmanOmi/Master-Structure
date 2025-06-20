@@ -1,6 +1,10 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { UserBaseDTO } from '../../../modules/user/dto/user-base.dto';
+import { InputType, Field } from '@nestjs/graphql';
 
 @InputType()
-export class CreateUserInput extends UserBaseDTO {
+export class CreateUserInput {
+  @Field()
+  email: string;
+
+  @Field()
+  password: string;
 }
