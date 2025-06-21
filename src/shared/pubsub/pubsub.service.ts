@@ -1,5 +1,7 @@
+
 import { Global, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
+
 
 @Injectable()
 export class PubsubService implements OnModuleDestroy {
@@ -14,7 +16,7 @@ export class PubsubService implements OnModuleDestroy {
   }
 
   asyncIterator<T>(triggers: string | string[]): AsyncIterator<T> {
-    return (this.pubSub as any).asyncIterator(triggers);
+    return (this.pubSub as any).asyncIterableIterator(triggers);
   }
 
   onModuleDestroy() {

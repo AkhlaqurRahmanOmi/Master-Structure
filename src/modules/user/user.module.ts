@@ -18,6 +18,9 @@ import { PubsubService } from '../../shared/pubsub/pubsub.service';
       useClass: PubsubService,
     },
   ],
-  exports: [UserRepository],
+  exports: [
+    UserRepository,
+    UserService, 
+  ],
 })
 export class UserModule {}

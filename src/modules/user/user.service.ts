@@ -1,13 +1,17 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Inject } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { Result } from '../../shared/types/result.type';
 import { User } from '@prisma/client';
-import { createBaseUserDTO} from './dto/create.base-user.dto';
-import { updateBaseUserDTO} from './dto/update.base-user.dto';
+import { createBaseUserDTO } from './dto/create.base-user.dto';
+import { updateBaseUserDTO } from './dto/update.base-user.dto';
+import { PubsubService } from '../../shared/pubsub/pubsub.service';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    private userRepository: UserRepository,
+    @Inject('PUB_SUB') private readonly pubSub: PubsubService,
+  ) {}
 
   async getUserById(id: number): Promise<Result<User>> {
     try {
@@ -61,6 +65,9 @@ export class UserService {
   async createUser(data: createBaseUserDTO): Promise<Result<User>> {
     try {
       const newUser = await this.userRepository.create(data);
+      // Publish event for subscription
+      await this.pubSub.publish('userCreated', newUser);
+      
       return {
         statusCode: HttpStatus.CREATED,
         success: true,
@@ -80,6 +87,9 @@ export class UserService {
   async updateUser(id: number, data: updateBaseUserDTO): Promise<Result<User>> {
     try {
       const user = await this.userRepository.update(id, data);
+      // Publish event for subscription
+      await this.pubSub.publish('userUpdated', user);
+      
       return {
         statusCode: HttpStatus.OK,
         success: true,
@@ -99,6 +109,9 @@ export class UserService {
   async deleteUser(id: number): Promise<Result<null>> {
     try {
       await this.userRepository.delete(id);
+      // Publish event for subscription
+      await this.pubSub.publish('userDeleted', { id });
+      
       return {
         statusCode: HttpStatus.OK,
         success: true,
@@ -113,5 +126,18 @@ export class UserService {
         },
       };
     }
+  }
+
+  // Subscription methods that can be used by both REST and GraphQL
+  subscribeToUserCreated() {
+    return this.pubSub.asyncIterator('userCreated');
+  }
+
+  subscribeToUserUpdated() {
+    return this.pubSub.asyncIterator('userUpdated');
+  }
+
+  subscribeToUserDeleted() {
+    return this.pubSub.asyncIterator('userDeleted');
   }
 }
