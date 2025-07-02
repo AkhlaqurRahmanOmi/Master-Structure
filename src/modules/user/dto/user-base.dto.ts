@@ -1,9 +1,13 @@
-import { IsString, IsEmail, IsOptional } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsInt } from 'class-validator';
 
 export class UserBaseDTO {
+  @IsInt()
+  @IsOptional()
+  id?: number;
 
+  @IsEmail()
   email: string;
 
-
+  @IsString()
   password: string;
 }
