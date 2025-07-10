@@ -5,7 +5,7 @@ import { BaseRepository } from '../../shared/repositories/base.repository';
 import { User } from '@prisma/client';
 
 @Injectable()
-export class UserRepository extends BaseRepository<User> {
+export class UserRepository extends BaseRepository<User, number> {
   constructor(private prisma: PrismaService) {
     super();
   }

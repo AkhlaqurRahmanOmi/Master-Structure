@@ -1,7 +1,7 @@
-export abstract class BaseRepository<T> {
-  abstract findById(id: number): Promise<T | null>;
+export abstract class BaseRepository<T, ID = string> {
+  abstract findById(id: ID): Promise<T | null>;
   abstract findAll(): Promise<T[]>;
-  abstract create(data: any): Promise<T>;
-  abstract update(id: number, data: any): Promise<T>;
-  abstract delete(id: number): Promise<void>;
+  abstract create(data: Partial<T>): Promise<T>;
+  abstract update(id: ID, data: Partial<T>): Promise<T>;
+  abstract delete(id: ID): Promise<void>;
 }
