@@ -1,5 +1,6 @@
 import { CreateUserInput } from './user.create.dto';
-import { InputType } from '@nestjs/graphql';
+import {InputType, ObjectType, PartialType} from '@nestjs/graphql';
 
 @InputType()
-export class updateUserInput extends CreateUserInput{}
+// @ObjectType()
+export class updateUserInput extends PartialType(CreateUserInput){}

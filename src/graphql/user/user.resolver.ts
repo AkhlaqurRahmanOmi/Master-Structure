@@ -5,6 +5,7 @@ import { CreateUserInput } from './dto/user.create.dto';
 import { UserDTO } from './dto/user.dto';
 import { UserService } from '../../modules/user/user.service';
 import { plainToInstance } from 'class-transformer';
+import {updateUserInput} from "./dto/update.user.dto";
 
 @Resolver(() => UserDTO)
 export class UserResolver {
@@ -43,7 +44,7 @@ export class UserResolver {
   @Mutation(() => UserDTO)
   async updateUser(
     @Args('id') id: number,
-    @Args('input') input: CreateUserInput,
+    @Args('input') input: updateUserInput,
   ) {
     const result = await this.userService.updateUser(id, input);
     if (!result.success || !result.data) {

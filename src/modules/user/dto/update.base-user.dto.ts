@@ -5,7 +5,4 @@ import { CreateUserInput } from '../../../graphql/user/dto/user.create.dto';
 @InputType()
 export class updateBaseUserDTO extends PartialType(CreateUserInput) {
 
-  @Field()
-  email: string
-
 }
