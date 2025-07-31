@@ -20,6 +20,10 @@ export class PubsubService implements OnModuleDestroy {
   }
 
   onModuleDestroy() {
-    return (this.pubSub as any).close();
+    // Check if close method exists before calling it
+    if (typeof (this.pubSub as any).close === 'function') {
+      return (this.pubSub as any).close();
+    }
+    return Promise.resolve();
   }
 }

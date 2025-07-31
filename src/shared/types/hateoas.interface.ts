@@ -34,4 +34,8 @@ export interface LinkContext {
   totalPages?: number;
   hasNext?: boolean;
   hasPrev?: boolean;
+  queryParams?: Record<string, any>;
+  resourceType?: string;
+  action?: string;
+  resourceState?: Record<string, any>;
 }
