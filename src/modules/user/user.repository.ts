@@ -49,12 +49,12 @@ export class UserRepository extends BaseRepository<User, number> {
     if (filters) {
       // Email filter (partial match, case-insensitive)
       if (filters.email) {
-        where.email = { contains: filters.email, mode: 'insensitive' };
+        where.email = { contains: filters.email };
       }
       
       // Text search across email field
       if (filters.search) {
-        where.email = { contains: filters.search, mode: 'insensitive' };
+        where.email = { contains: filters.search };
       }
     }
 
@@ -106,7 +106,6 @@ export class UserRepository extends BaseRepository<User, number> {
         searchConditions.push({
           email: {
             contains: query,
-            mode: 'insensitive',
           },
         });
       }
@@ -133,12 +132,12 @@ export class UserRepository extends BaseRepository<User, number> {
     
     // Email filter
     if (filters.email) {
-      where.email = { contains: filters.email, mode: 'insensitive' };
+      where.email = { contains: filters.email };
     }
     
     // Text search across email field
     if (filters.search) {
-      where.email = { contains: filters.search, mode: 'insensitive' };
+      where.email = { contains: filters.search };
     }
 
     return this.prisma.user.count({ where });

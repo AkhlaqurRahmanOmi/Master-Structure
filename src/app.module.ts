@@ -8,21 +8,27 @@ import { AppService } from './app.service';
 import { UnitOfWork } from './shared/services/unit-of-work/unit-of-work.service';
 import { UserModule } from './modules/user/user.module';
 import { ProductModule } from './modules/product/product.module';
+import { MonitoringModule } from './api/rest/monitoring/monitoring.module';
 import { PrismaModule } from './core/config/prisma/prisma.module';
 import { winstonConfig } from './logger/winston.config';
 import { WinstonModule } from 'nest-winston';
 import { EnhancedHttpLoggerMiddleware, TraceIdService } from './shared';
 import { GlobalResponseInterceptor } from './shared/interceptors/global-response.interceptor';
 import { CacheInterceptor } from './shared/interceptors/cache.interceptor';
+import { PerformanceMonitorInterceptor } from './shared/interceptors/performance-monitor.interceptor';
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
 import { EnhancedValidationPipe } from './shared/pipes/enhanced-validation.pipe';
 import { ResponseBuilderService } from './shared/services/response-builder.service';
 import { CacheService } from './shared/services/cache.service';
+import { PerformanceMonitorService } from './shared/services/performance-monitor.service';
+import { QueryOptimizerService } from './shared/services/query-optimizer.service';
+import { LoggingConfigService } from './shared/services/logging-config.service';
 
 @Module({
   imports: [
     UserModule,
     ProductModule,
+    MonitoringModule,
     WinstonModule.forRoot(winstonConfig),
     PrismaModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -39,21 +45,38 @@ import { CacheService } from './shared/services/cache.service';
     TraceIdService,
     ResponseBuilderService,
     CacheService,
+    PerformanceMonitorService,
+    QueryOptimizerService,
+    LoggingConfigService,
     Reflector,
     EnhancedHttpLoggerMiddleware,
-    // Global interceptors (order matters - cache first, then response transformation)
+    // Global interceptors (order matters - performance monitoring first, then cache, then response transformation)
+    // Temporarily disabled for debugging
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: PerformanceMonitorInterceptor,
+    // },
     {
       provide: APP_INTERCEPTOR,
-      useClass: CacheInterceptor,
+      useFactory: (cacheService: CacheService, reflector: Reflector) => {
+        return new CacheInterceptor(cacheService, reflector);
+      },
+      inject: [CacheService, Reflector],
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: GlobalResponseInterceptor,
+      useFactory: (responseBuilder: ResponseBuilderService, traceIdService: TraceIdService, cacheService: CacheService, reflector: Reflector) => {
+        return new GlobalResponseInterceptor(responseBuilder, traceIdService, cacheService, reflector);
+      },
+      inject: [ResponseBuilderService, TraceIdService, CacheService, Reflector],
     },
     // Global filters
     {
       provide: APP_FILTER,
-      useClass: GlobalExceptionFilter,
+      useFactory: (responseBuilder: ResponseBuilderService, traceIdService: TraceIdService) => {
+        return new GlobalExceptionFilter(responseBuilder, traceIdService);
+      },
+      inject: [ResponseBuilderService, TraceIdService],
     },
     // Global validation pipe with custom error handling
     {

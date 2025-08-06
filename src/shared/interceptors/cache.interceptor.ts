@@ -46,20 +46,33 @@ export class CacheInterceptor implements NestInterceptor {
   constructor(
     private readonly cacheService: CacheService,
     private readonly reflector: Reflector,
-  ) {}
+  ) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const response = context.switchToHttp().getResponse<Response>();
+    // Check if this is a GraphQL context by trying to get HTTP context
+    try {
+      const request = context.switchToHttp().getRequest<Request>();
+      const response = context.switchToHttp().getResponse<Response>();
 
-    // Skip caching for non-GET requests by default
-    if (request.method !== 'GET') {
+      // Skip caching for non-GET requests by default
+      if (!request || !request.method || request.method !== 'GET') {
+        return next.handle();
+      }
+
+      // Continue with caching logic for HTTP requests
+      return this.handleHttpCaching(context, next, request, response);
+    } catch (error) {
+      // If we can't get HTTP context, it's likely a GraphQL request
+      // Skip caching for GraphQL requests for now
       return next.handle();
     }
+  }
+
+  private handleHttpCaching(context: ExecutionContext, next: CallHandler, request: Request, response: Response): Observable<any> {
 
     // Get cache configuration from decorator or use defaults
     const cacheConfig = this.getCacheConfig(context);
-    
+
     // Skip caching if explicitly disabled (but not for resourceType configurations)
     if (cacheConfig.noStore && cacheConfig.noCache && !cacheConfig.resourceType) {
       return next.handle();
@@ -74,9 +87,9 @@ export class CacheInterceptor implements NestInterceptor {
 
         // Generate cache options
         const cacheOptions = this.buildCacheOptions(cacheConfig);
-        
+
         // Don't skip here - let the cache service handle the no-cache/no-store logic
-        
+
         // Generate cache headers
         const cacheHeaders = this.cacheService.generateCacheHeaders(
           data,
@@ -135,7 +148,7 @@ export class CacheInterceptor implements NestInterceptor {
     // If resourceType is specified, use predefined options
     if (config.resourceType) {
       const baseOptions = this.cacheService.getCacheOptionsForResource(config.resourceType);
-      
+
       // Override with specific configuration
       return {
         ...baseOptions,

@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './logger/winston.config'; // Make sure this exists
+import { setupSwagger } from './config/swagger.config';
 
 function patchConsoleToWinston(logger: any) {
   const serializeArgs = (args: any[]) =>
@@ -32,6 +33,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Setup Swagger/OpenAPI documentation
+  setupSwagger(app);
 
   await app.listen(process.env.PORT ?? 3000);
 }
