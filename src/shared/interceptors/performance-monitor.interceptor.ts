@@ -17,7 +17,7 @@ import { PerformanceMonitorService } from '../services/performance-monitor.servi
 export class PerformanceMonitorInterceptor implements NestInterceptor {
   private readonly logger = new Logger(PerformanceMonitorInterceptor.name);
 
-  constructor(private readonly performanceMonitor: PerformanceMonitorService) {}
+  constructor(private readonly performanceMonitor?: PerformanceMonitorService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -30,7 +30,7 @@ export class PerformanceMonitorInterceptor implements NestInterceptor {
     
     const operation = `HTTP_${method}_${this.sanitizeUrl(url)}`;
     
-    const tracker = this.performanceMonitor.startTracking(operation, {
+    const tracker = this.performanceMonitor?.startTracking(operation, {
       method,
       url,
       userAgent,
@@ -47,7 +47,7 @@ export class PerformanceMonitorInterceptor implements NestInterceptor {
         const statusCode = response.statusCode;
         
         // End performance tracking
-        tracker.end({
+        tracker?.end({
           statusCode,
           responseTime,
           success: true,
@@ -55,12 +55,12 @@ export class PerformanceMonitorInterceptor implements NestInterceptor {
         });
 
         // Log request completion
-        this.logRequest(method, url, statusCode, responseTime, tracker.traceId);
+        this.logRequest(method, url, statusCode, responseTime, tracker?.traceId || 'no-trace');
         
         // Log slow requests
         if (responseTime > 1000) {
           this.logger.warn(`Slow HTTP request: ${method} ${url}`, {
-            traceId: tracker.traceId,
+            traceId: tracker?.traceId || 'no-trace',
             responseTime: `${responseTime}ms`,
             statusCode,
           });
@@ -71,15 +71,15 @@ export class PerformanceMonitorInterceptor implements NestInterceptor {
         const statusCode = error.status || 500;
         
         // End performance tracking for errors
-        tracker.end({
+        tracker?.end({
           statusCode,
           responseTime,
           success: false,
-          error: error.message,
+          error: error?.message || error?.toString() || 'Unknown error',
         });
 
         // Log error request
-        this.logRequest(method, url, statusCode, responseTime, tracker.traceId, error.message);
+        this.logRequest(method, url, statusCode, responseTime, tracker?.traceId || 'no-trace', error?.message || error?.toString() || 'Unknown error');
         
         throw error;
       }),

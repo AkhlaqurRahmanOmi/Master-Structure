@@ -24,36 +24,60 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
   constructor(
-    private readonly responseBuilder: ResponseBuilderService,
-    private readonly traceIdService: TraceIdService,
+    private readonly responseBuilder?: ResponseBuilderService,
+    private readonly traceIdService?: TraceIdService,
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-    
-    const traceId = this.traceIdService.getTraceId();
-    const url = request.url;
+    try {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      const request = ctx.getRequest<Request>();
+      
+      // Safely get trace ID with fallback
+      const traceId = this.traceIdService?.getTraceId() || this.generateFallbackTraceId();
+      const url = request.url;
 
-    // Determine status code and error details
-    const errorInfo = this.getErrorInfo(exception);
-    
-    // Log the error with trace ID correlation
-    this.logError(exception, traceId, url, errorInfo);
+      // Determine status code and error details
+      const errorInfo = this.getErrorInfo(exception);
+      
+      // Log the error with trace ID correlation
+      this.logError(exception, traceId, url, errorInfo);
 
-    // Build standardized error response
-    const errorResponse = this.responseBuilder.buildErrorResponse(
-      errorInfo.code,
-      errorInfo.message,
-      errorInfo.statusCode,
-      traceId,
-      url,
-      errorInfo.details,
-      errorInfo.hint
-    );
+      // Build standardized error response
+      const errorResponse = this.responseBuilder?.buildErrorResponse(
+        errorInfo.code,
+        errorInfo.message,
+        errorInfo.statusCode,
+        traceId,
+        url,
+        errorInfo.details,
+        errorInfo.hint
+      ) || this.buildFallbackErrorResponse(errorInfo, traceId, url);
 
-    response.status(errorInfo.statusCode).json(errorResponse);
+      response.status(errorInfo.statusCode).json(errorResponse);
+    } catch (filterError) {
+      // Fallback error handling if the filter itself fails
+      console.error('GlobalExceptionFilter failed:', filterError);
+      console.error('Original exception:', exception);
+      
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      
+      response.status(500).json({
+        success: false,
+        statusCode: 500,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An unexpected error occurred',
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+          traceId: 'fallback-' + Date.now(),
+          version: '1.0.0',
+        },
+      });
+    }
   }
 
   /**
@@ -304,6 +328,42 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   /**
+   * Generate fallback trace ID when TraceIdService is not available
+   */
+  private generateFallbackTraceId(): string {
+    return `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Build fallback error response when ResponseBuilderService is not available
+   */
+  private buildFallbackErrorResponse(
+    errorInfo: { statusCode: number; code: string; message: string; details?: any; hint?: string },
+    traceId: string,
+    url: string
+  ): any {
+    return {
+      success: false,
+      statusCode: errorInfo.statusCode,
+      error: {
+        code: errorInfo.code,
+        message: errorInfo.message,
+        details: errorInfo.details,
+        hint: errorInfo.hint,
+      },
+      meta: {
+        timestamp: new Date().toISOString(),
+        traceId,
+        version: '1.0.0',
+      },
+      links: {
+        self: url,
+        documentation: '/api/docs',
+      },
+    };
+  }
+
+  /**
    * Log error with trace ID correlation
    */
   private logError(
@@ -312,33 +372,35 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     url: string,
     errorInfo: { statusCode: number; code: string; message: string }
   ): void {
-    const logContext = {
-      traceId,
-      url,
-      statusCode: errorInfo.statusCode,
-      errorCode: errorInfo.code,
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const logContext = {
+        traceId,
+        url,
+        statusCode: errorInfo.statusCode,
+        errorCode: errorInfo.code,
+        timestamp: new Date().toISOString()
+      };
 
-    if (errorInfo.statusCode >= 500) {
-      // Log server errors as errors
-      this.logger.error(
-        `Server Error: ${errorInfo.message}`,
-        exception instanceof Error ? exception.stack : String(exception),
-        logContext
-      );
-    } else if (errorInfo.statusCode >= 400) {
-      // Log client errors as warnings
-      this.logger.warn(
-        `Client Error: ${errorInfo.message}`,
-        logContext
-      );
-    } else {
-      // Log other errors as info
-      this.logger.log(
-        `Error: ${errorInfo.message}`,
-        logContext
-      );
+      if (errorInfo.statusCode >= 500) {
+        // Log server errors as errors
+        this.logger.error(`Server Error: ${errorInfo.message}`);
+        this.logger.error(`Context: ${JSON.stringify(logContext)}`);
+        if (exception instanceof Error) {
+          this.logger.error(`Stack: ${exception.stack}`);
+        }
+      } else if (errorInfo.statusCode >= 400) {
+        // Log client errors as warnings
+        this.logger.warn(`Client Error: ${errorInfo.message}`);
+        this.logger.warn(`Context: ${JSON.stringify(logContext)}`);
+      } else {
+        // Log other errors as info
+        this.logger.log(`Error: ${errorInfo.message}`);
+        this.logger.log(`Context: ${JSON.stringify(logContext)}`);
+      }
+    } catch (logError) {
+      // Fallback logging if there's an issue with the logger
+      console.error('Failed to log error:', logError);
+      console.error('Original exception:', exception);
     }
   }
 }

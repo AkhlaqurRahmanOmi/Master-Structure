@@ -51,22 +51,32 @@ import { LoggingConfigService } from './shared/services/logging-config.service';
     Reflector,
     EnhancedHttpLoggerMiddleware,
     // Global interceptors (order matters - performance monitoring first, then cache, then response transformation)
+    // Temporarily disabled for debugging
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: PerformanceMonitorInterceptor,
+    // },
     {
       provide: APP_INTERCEPTOR,
-      useClass: PerformanceMonitorInterceptor,
+      useFactory: (cacheService: CacheService, reflector: Reflector) => {
+        return new CacheInterceptor(cacheService, reflector);
+      },
+      inject: [CacheService, Reflector],
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: CacheInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: GlobalResponseInterceptor,
+      useFactory: (responseBuilder: ResponseBuilderService, traceIdService: TraceIdService, cacheService: CacheService, reflector: Reflector) => {
+        return new GlobalResponseInterceptor(responseBuilder, traceIdService, cacheService, reflector);
+      },
+      inject: [ResponseBuilderService, TraceIdService, CacheService, Reflector],
     },
     // Global filters
     {
       provide: APP_FILTER,
-      useClass: GlobalExceptionFilter,
+      useFactory: (responseBuilder: ResponseBuilderService, traceIdService: TraceIdService) => {
+        return new GlobalExceptionFilter(responseBuilder, traceIdService);
+      },
+      inject: [ResponseBuilderService, TraceIdService],
     },
     // Global validation pipe with custom error handling
     {
