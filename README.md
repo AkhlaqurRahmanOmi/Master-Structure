@@ -23,25 +23,148 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+A comprehensive NestJS application featuring a standardized Product API with advanced caching, HATEOAS implementation, and robust error handling. This project demonstrates best practices for building scalable and maintainable REST APIs with both REST and GraphQL interfaces.
 
-## Project setup
+## Features
+
+- **Standardized API Responses**: Consistent response structures across all endpoints
+- **HATEOAS Implementation**: Hypermedia links for API discoverability and navigation
+- **Advanced Caching**: ETag-based caching with conditional requests (304 Not Modified)
+- **Comprehensive Error Handling**: Detailed error responses with trace IDs and helpful hints
+- **Dual API Support**: Both REST and GraphQL interfaces sharing the same business logic
+- **Advanced Query Features**: Filtering, sorting, pagination, and field selection
+- **Robust Validation**: Comprehensive input validation with detailed error messages
+- **Performance Monitoring**: Request tracing and structured logging
+- **Interactive Documentation**: Swagger/OpenAPI documentation with examples
+
+## API Documentation
+
+- **Interactive API Docs**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs) (when running locally)
+- **Migration Guide**: [docs/api-migration-guide.md](docs/api-migration-guide.md)
+- **Development Guidelines**: [REST.md](REST.md)
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- PostgreSQL database
+- npm or yarn
+
+### Project setup
 
 ```bash
 $ npm install
 ```
 
-## Compile and run the project
+### Environment Configuration
+
+Create a `.env` file in the root directory:
+
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
+PORT=3000
+NODE_ENV=development
+```
+
+### Database Setup
+
+```bash
+# Generate Prisma client
+$ npx prisma generate
+
+# Run database migrations
+$ npx prisma migrate dev
+
+# (Optional) Seed the database
+$ npx prisma db seed
+```
+
+## Running the Application
 
 ```bash
 # development
 $ npm run start
 
-# watch mode
+# watch mode (recommended for development)
 $ npm run start:dev
 
 # production mode
 $ npm run start:prod
+```
+
+Once running, you can access:
+
+- **REST API**: [http://localhost:3000/api/v1](http://localhost:3000/api/v1)
+- **GraphQL Playground**: [http://localhost:3000/graphql](http://localhost:3000/graphql)
+- **API Documentation**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+
+## API Usage Examples
+
+### REST API
+
+```bash
+# Get all products with pagination
+curl "http://localhost:3000/api/v1/products?page=1&limit=10"
+
+# Create a new product
+curl -X POST "http://localhost:3000/api/v1/products" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "MacBook Pro 16\"",
+    "description": "High-performance laptop",
+    "price": 2499.99,
+    "category": "electronics"
+  }'
+
+# Get product with ETag caching
+curl -H "If-None-Match: \"abc123\"" "http://localhost:3000/api/v1/products/1"
+
+# Filter products by category and price range
+curl "http://localhost:3000/api/v1/products?category=electronics&minPrice=1000&maxPrice=3000"
+
+# Search products
+curl "http://localhost:3000/api/v1/products?search=laptop"
+
+# Get specific fields only
+curl "http://localhost:3000/api/v1/products?fields=id,name,price"
+```
+
+### GraphQL
+
+```graphql
+# Query products
+query GetProducts {
+  products {
+    id
+    name
+    price
+    category
+  }
+}
+
+# Create a product
+mutation CreateProduct {
+  createProduct(input: {
+    name: "MacBook Pro 16\""
+    description: "High-performance laptop"
+    price: 2499.99
+    category: "electronics"
+  }) {
+    id
+    name
+    price
+  }
+}
+
+# Subscribe to product updates
+subscription ProductUpdates {
+  productUpdated {
+    id
+    name
+    price
+  }
+}
 ```
 
 ## Run tests

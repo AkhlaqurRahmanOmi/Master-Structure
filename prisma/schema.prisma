@@ -29,5 +29,14 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  // Database indexes for performance optimization
+  @@index([category], name: "idx_product_category")
+  @@index([price], name: "idx_product_price")
+  @@index([name], name: "idx_product_name")
+  @@index([createdAt], name: "idx_product_created_at")
+  @@index([updatedAt], name: "idx_product_updated_at")
+  @@index([category, price], name: "idx_product_category_price")
+  @@index([name, category], name: "idx_product_name_category")
+  
   @@map("products")
 }
